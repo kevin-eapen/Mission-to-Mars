@@ -22,6 +22,7 @@ def scrape_all():
         "news_paragraph": news_paragraph,
         "featured_image": featured_image(browser),
         "facts": mars_facts(),
+        "hemispheres": hemispheres(browser),
         "last_modified": dt.datetime.now()
     }
 
@@ -115,7 +116,56 @@ def mars_facts():
     
     
     # Convert dataframe into HTML format, add bootstrap
-    return df.to_html(classes="table table-striped")
+    return df.to_html(classes="table table-striped table-hover")
+
+# ### Hemispheres
+
+def hemispheres(browser):
+
+    # Use browser to visit the URL 
+    url = 'https://marshemispheres.com/'
+    browser.visit(url)
+
+    # Create a list to hold the images and titles
+    hemisphere_image_urls = []
+
+    # Create for loop to iterate through each full image elem... click on every other html link found to iterate
+    # over a range from 1-7, incrementing by 2 in order to click each of the 4 full image elem links
+    for i in range(1, 8, 2):
+        # Initialize empy dictionary variable to add 'image link: title' key-value pair from scraping results
+        hemispheres = {}
+        
+        # Search for the full image elem link by partial href value and click on the element
+        full_image_elem = browser.links.find_by_partial_href('.html')
+        full_image_elem[i].click()
+        
+        # Parse the html from the web page
+        html = browser.html
+        img_soup = soup(html, 'html.parser')
+        
+        try:
+
+            # Search for the 'a' tag containg the href full image link within the div container with the class 'downloads',
+            # and scrape the href value (the relative url). Then concatenate the relative url with the base url
+            img_url_rel = img_soup.find('div', class_='downloads').find('a').get('href')
+            img_url = f'{url}{img_url_rel}'
+                    
+            # Search for the image title in the 'h2' header tag with the 'title' class
+            title = img_soup.find('h2', class_='title').get_text()
+                    
+        except AttributeError:
+            
+            return None
+
+        # Add full image url and title key-value pairs to hemispheres dictionary.
+        # Then append the hemispheres dictionary to the hemisphere image urls list.
+        hemispheres.update({'img_url': img_url, 'title': title})
+        hemisphere_image_urls.append(hemispheres)
+        
+        # Use the browser to click 'back' to allow next loop iteration to click on the next full image elem link.
+        browser.back()
+
+    return hemisphere_image_urls
 
 
 if __name__ == "__main__":
